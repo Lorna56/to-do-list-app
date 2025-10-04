@@ -1,27 +1,4 @@
-// import React from "react";
 
-// const TodoItem = ({ todo, toggleTodo, deleteTodo }) => {
-//   return (
-//     <li className="flex items-center justify-between bg-white rounded-lg shadow p-3 hover:shadow-md transition">
-//       <span
-//         onClick={() => toggleTodo(todo._id, todo.completed)}
-//         className={`flex-1 cursor-pointer ${
-//           todo.completed ? "line-through text-gray-400" : "text-gray-800"
-//         }`}
-//       >
-//         {todo.title}
-//       </span>
-//       <button
-//         onClick={() => deleteTodo(todo._id)}
-//         className="ml-3 text-red-500 hover:text-red-600 font-bold text-lg"
-//       >
-//         ✕
-//       </button>
-//     </li>
-//   );
-// };
-
-// export default TodoItem;
 import React, { useState } from "react";
 
 const TodoItem = ({ todo, toggleTodo, deleteTodo, editTodo }) => {
@@ -36,24 +13,29 @@ const TodoItem = ({ todo, toggleTodo, deleteTodo, editTodo }) => {
   };
 
   return (
-    <li className="flex items-center justify-between bg-gray-50 p-3 rounded-lg border hover:bg-gray-100 transition">
-      <div className="flex items-center flex-1">
+    <li
+      className={`flex items-center justify-between p-4 rounded-xl border transition-all duration-300
+        ${todo.completed ? "bg-purple-100 border-purple-300" : "bg-purple-50 border-purple-200"} 
+        hover:shadow-lg hover:scale-[1.01]`}
+    >
+      <div className="flex items-center flex-1 space-x-3">
         <input
           type="checkbox"
           checked={todo.completed}
           onChange={() => toggleTodo(todo._id, todo.completed)}
-          className="mr-3 accent-indigo-600"
+          className="accent-indigo-600 w-5 h-5"
         />
         {isEditing ? (
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="flex-1 border-b border-indigo-400 outline-none bg-transparent"
+            className="flex-1 border-b border-indigo-400 outline-none bg-transparent px-1 py-0.5"
             autoFocus
           />
         ) : (
           <span
-            className={`flex-1 cursor-pointer ${
+            onDoubleClick={handleEdit} // optional: double-click to edit
+            className={`flex-1 cursor-pointer text-gray-800 ${
               todo.completed ? "line-through text-gray-400" : ""
             }`}
           >
@@ -65,13 +47,15 @@ const TodoItem = ({ todo, toggleTodo, deleteTodo, editTodo }) => {
       <div className="flex space-x-2">
         <button
           onClick={handleEdit}
-          className="text-indigo-600 hover:text-indigo-800 transition"
+          className="text-indigo-600 hover:text-indigo-800 transition text-lg"
+          title={isEditing ? "Save" : "Edit"}
         >
           {isEditing ? "💾" : "✏️"}
         </button>
         <button
           onClick={() => deleteTodo(todo._id)}
-          className="text-red-500 hover:text-red-700 transition"
+          className="text-red-500 hover:text-red-700 transition text-lg"
+          title="Delete"
         >
           🗑️
         </button>
@@ -81,3 +65,4 @@ const TodoItem = ({ todo, toggleTodo, deleteTodo, editTodo }) => {
 };
 
 export default TodoItem;
+
