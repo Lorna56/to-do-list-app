@@ -1,69 +1,206 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import TodoItem from "./components/TodoItem";
+// import React, { useEffect, useState } from "react";
+// import axios from "axios";
+// import TodoItem from "./components/TodoItem";
 
-const API_URL = "http://localhost:5000/api/todos";
+// const API_URL = "http://localhost:5000/api/todos";
+
+// function App() {
+//   const [todos, setTodos] = useState([]);
+//   const [newTodo, setNewTodo] = useState("");
+
+//   useEffect(() => {
+//     fetchTodos();
+//   }, []);
+
+//   const fetchTodos = async () => {
+//     const res = await axios.get(API_URL);
+//     setTodos(res.data);
+//   };
+
+//   const addTodo = async () => {
+//     if (!newTodo.trim()) return;
+//     const res = await axios.post(API_URL, { title: newTodo });
+//     setTodos([...todos, res.data]);
+//     setNewTodo("");
+//   };
+
+//   const toggleTodo = async (id, completed) => {
+//     const res = await axios.put(`${API_URL}/${id}`, { completed: !completed });
+//     setTodos(todos.map(todo => (todo._id === id ? res.data : todo)));
+//   };
+
+//   const deleteTodo = async (id) => {
+//     await axios.delete(`${API_URL}/${id}`);
+//     setTodos(todos.filter(todo => todo._id !== id));
+//   };
+
+//   return (
+//     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center pt-10 px-3">
+//       <h1 className="text-4xl font-bold mb-6 text-indigo-700 drop-shadow-sm">To-Do App</h1>
+
+//       <div className="flex mb-6 w-full max-w-md">
+//         <input
+//           type="text"
+//           value={newTodo}
+//           onChange={(e) => setNewTodo(e.target.value)}
+//           className="flex-1 px-4 py-2 border rounded-l-md outline-none focus:ring-2 focus:ring-indigo-400"
+//           placeholder="Add a new task..."
+//         />
+//         <button
+//           onClick={addTodo}
+//           className="px-5 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition"
+//         >
+//           Add
+//         </button>
+//       </div>
+
+//       <ul className="w-full max-w-md space-y-3">
+//         {todos.map((todo) => (
+//           <TodoItem
+//             key={todo._id}
+//             todo={todo}
+//             toggleTodo={toggleTodo}
+//             deleteTodo={deleteTodo}
+//           />
+//         ))}
+//       </ul>
+//     </div>
+//   );
+// }
+
+// export default App;
+import React, { useEffect, useState } from "react";
+import {
+  getTodos,
+  createTodo,
+  updateTodo,
+  deleteTodo,
+} from "./api/todoApi";
+import TodoItem from "./components/TodoItem";
+import TodoFilter from "./components/TodoFilter";
+import LoadingSpinner from "./components/LoadingSpinner";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function App() {
   const [todos, setTodos] = useState([]);
   const [newTodo, setNewTodo] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchTodos();
   }, []);
 
   const fetchTodos = async () => {
-    const res = await axios.get(API_URL);
-    setTodos(res.data);
+    setLoading(true);
+    try {
+      const res = await getTodos();
+      setTodos(res.data);
+    } catch {
+      toast.error("Failed to fetch todos");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const addTodo = async () => {
-    if (!newTodo.trim()) return;
-    const res = await axios.post(API_URL, { title: newTodo });
-    setTodos([...todos, res.data]);
-    setNewTodo("");
+    if (!newTodo.trim()) return toast.info("Please enter a task");
+    try {
+      const res = await createTodo({ title: newTodo });
+      setTodos([...todos, res.data]);
+      setNewTodo("");
+      toast.success("Task added");
+    } catch {
+      toast.error("Failed to add task");
+    }
   };
 
   const toggleTodo = async (id, completed) => {
-    const res = await axios.put(`${API_URL}/${id}`, { completed: !completed });
-    setTodos(todos.map(todo => (todo._id === id ? res.data : todo)));
+    try {
+      const res = await updateTodo(id, { completed: !completed });
+      setTodos(todos.map((t) => (t._id === id ? res.data : t)));
+    } catch {
+      toast.error("Failed to update task");
+    }
   };
 
-  const deleteTodo = async (id) => {
-    await axios.delete(`${API_URL}/${id}`);
-    setTodos(todos.filter(todo => todo._id !== id));
+  const editTodo = async (id, title) => {
+    try {
+      const res = await updateTodo(id, { title });
+      setTodos(todos.map((t) => (t._id === id ? res.data : t)));
+      toast.success("Task updated");
+    } catch {
+      toast.error("Failed to edit task");
+    }
   };
+
+  const removeTodo = async (id) => {
+    try {
+      await deleteTodo(id);
+      setTodos(todos.filter((t) => t._id !== id));
+      toast.success("Task deleted");
+    } catch {
+      toast.error("Failed to delete task");
+    }
+  };
+
+  const clearCompleted = () => {
+    const active = todos.filter((t) => !t.completed);
+    setTodos(active);
+    toast.info("Cleared completed tasks");
+  };
+
+  const filteredTodos =
+    filter === "active"
+      ? todos.filter((t) => !t.completed)
+      : filter === "completed"
+      ? todos.filter((t) => t.completed)
+      : todos;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col items-center pt-10 px-3">
-      <h1 className="text-4xl font-bold mb-6 text-indigo-700 drop-shadow-sm">To-Do App</h1>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-blue-100 flex flex-col items-center p-6">
+      <ToastContainer position="top-right" autoClose={2000} />
+      <div className="w-full max-w-lg bg-white shadow-lg rounded-xl p-6 mt-8">
+        <h1 className="text-3xl font-semibold text-indigo-700 mb-5 text-center">
+          📝 My To-Do List
+        </h1>
 
-      <div className="flex mb-6 w-full max-w-md">
-        <input
-          type="text"
-          value={newTodo}
-          onChange={(e) => setNewTodo(e.target.value)}
-          className="flex-1 px-4 py-2 border rounded-l-md outline-none focus:ring-2 focus:ring-indigo-400"
-          placeholder="Add a new task..."
-        />
-        <button
-          onClick={addTodo}
-          className="px-5 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition"
-        >
-          Add
-        </button>
-      </div>
-
-      <ul className="w-full max-w-md space-y-3">
-        {todos.map((todo) => (
-          <TodoItem
-            key={todo._id}
-            todo={todo}
-            toggleTodo={toggleTodo}
-            deleteTodo={deleteTodo}
+        <div className="flex mb-5">
+          <input
+            value={newTodo}
+            onChange={(e) => setNewTodo(e.target.value)}
+            placeholder="Add a new task..."
+            className="flex-1 border rounded-l-md px-4 py-2 outline-none focus:ring-2 focus:ring-indigo-400"
           />
-        ))}
-      </ul>
+          <button
+            onClick={addTodo}
+            className="px-5 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 transition"
+          >
+            Add
+          </button>
+        </div>
+
+        <TodoFilter filter={filter} setFilter={setFilter} clearCompleted={clearCompleted} />
+
+        {loading ? (
+          <LoadingSpinner />
+        ) : filteredTodos.length === 0 ? (
+          <p className="text-center text-gray-400 py-10">No tasks found 🎉</p>
+        ) : (
+          <ul className="space-y-2 mt-3">
+            {filteredTodos.map((todo) => (
+              <TodoItem
+                key={todo._id}
+                todo={todo}
+                toggleTodo={toggleTodo}
+                deleteTodo={removeTodo}
+                editTodo={editTodo}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }
